@@ -1,0 +1,60 @@
+name: health check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+
+  lint:
+    name: check linting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: key-${{ hashFiles ('yarn.lock') }}
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "18.x"
+      - name: fetch dependencies
+        run: yarn
+      - name: run linter
+        run: yarn lint
+
+  format:
+    name: check formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: key-${{ hashFiles ('yarn.lock') }}
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "18.x"
+      - name: fetch dependencies
+        run: yarn
+      - name: check formatting of `main.ts`
+        run: yarn prettier --check 'main.ts'
+      - name: check formatting of `styles.css`
+        run: yarn prettier --check 'styles.css'
+
+  build:
+    name: check build process
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: key-${{ hashFiles ('yarn.lock') }}
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "18.x"
+      - name: fetch dependencies
+        run: yarn
+      - name: build code
+        run: yarn build
