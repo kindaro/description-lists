@@ -1,8 +1,61 @@
-/*
+/* A description list is a kind of a vertical table. So, we draw a vertical line
+ * on the left with the appearance same as of blockquote, but of the same colour
+ * as table borders. */
+.markdown-rendered dl {
+	border-inline-start: var(--blockquote-border-thickness) solid
+		var(--table-border-color);
+	padding-inline-start: var(--size-4-6);
+}
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+/* We set our terms in bold, but of muted colour, so they are distinguished but
+ * do not stand out.  */
+.markdown-rendered dt {
+	font-weight: calc(var(--font-weight) + var(--bold-modifier));
+	color: var(--text-muted);
+}
 
-If your plugin does not need CSS, delete this file.
+/* Since we set our terms in bold, bold text in terms we make bold twice. */
+.markdown-rendered dt strong {
+	font-weight: calc(var(--font-weight) + 2 * var(--bold-modifier));
+	color: var(--text-muted);
+}
 
-*/
+/* The default user agent style is 40 pixels of indentation. It is garish; let
+ * us reset. */
+.markdown-rendered dd {
+	margin-inline-start: 0;
+}
+
+/* We are going to have some breathing space between the details of a term and
+ * the beginning of a following term. */
+.markdown-rendered dd + dt {
+	margin-top: var(--p-spacing);
+}
+
+/* We are going to set a colon styled as a list marker before every detail. It
+ * will have about as much space to the right until the detail text as it has
+ * upwards until the text of the preceding term. */
+.markdown-rendered dd::before {
+	content: ":";
+	font-weight: calc(var(--font-weight) + var(--bold-modifier));
+	color: var(--list-marker-color);
+	margin-right: 1ex;
+}
+
+/* Obsidian uses a fancy bullet positioning system. Sadly this system breaks the
+ * separation of structure and presentation. We cannot make it work with lists
+ * of description lists, so we have to disable it. */
+.markdown-rendered ul.has-list-bullet {
+	list-style-type: unset !important;
+}
+
+/* Instead, we make the default bullets visible. */
+.markdown-rendered ul.has-list-bullet > li::marker {
+	color: var(--list-marker-color);
+}
+
+/* Since we disabled the fancy bullet positioning system, we make the fancy
+ * bullets disappear. */
+.markdown-rendered .list-bullet {
+	display: none;
+}
