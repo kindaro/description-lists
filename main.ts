@@ -98,7 +98,7 @@ export function parseDescription(input: Node[]): parses<Node, descriptions> {
 			return null;
 		} else {
 			const firstNodeString: string = renderHTML(input[0]);
-			if (firstNodeString.trim().slice(0, 2) === ": ") {
+			if (firstNodeString.trim()[0] === ":") {
 				return null;
 			} else {
 				return {
@@ -129,9 +129,9 @@ export function parseDescription(input: Node[]): parses<Node, descriptions> {
 			return null;
 		} else {
 			const firstNodeString: string = renderHTML(input[0]);
-			if (firstNodeString.trim().slice(0, 2) === ": ") {
+			if (firstNodeString.trim()[0] === ":") {
 				return {
-					outcome: firstNodeString.slice(2),
+					outcome: firstNodeString.trim().slice(1),
 					leftover: input.slice(1),
 				};
 			} else {
