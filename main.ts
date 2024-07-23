@@ -1,134 +1,382 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { Plugin, MarkdownPostProcessorContext } from "obsidian";
 
-// Remember to rename these classes and interfaces!
-
-interface MyPluginSettings {
-	mySetting: string;
-}
-
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
-}
-
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
-
+export default class DescriptionListsPlugin extends Plugin {
 	async onload() {
-		await this.loadSettings();
-
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
-
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
-
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-			}
-		});
-
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
-	}
-
-	onunload() {
-
-	}
-
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-	}
-
-	async saveSettings() {
-		await this.saveData(this.settings);
+		this.registerMarkdownPostProcessor(processDescriptionLists);
 	}
 }
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
+/**
+ * This is a markdown post-processor that will replace paragraphs that look like
+ * description lists with actual description lists.
+ */
+export function processDescriptionLists(
+	element: HTMLElement,
+	_context: MarkdownPostProcessorContext,
+) {
+	recursivelyProcessDescriptionLists(element);
+}
 
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
+/**
+ * In a given DOM element, replace paragraphs that look like description lists
+ * with actual description lists.
+ *
+ * A paragraph looks like a description list when it holds some lines without a
+ * leading colon and a space and then some lines with a leading colon and a
+ * space. These lines may themselves contain inline elements.
+ */
+export function recursivelyProcessDescriptionLists(element: Element) {
+	const nodes = Array.from(element.childNodes);
+	const parsedDescriptions = nodes.map((node) =>
+		parseDescription(Array.from(node.childNodes)),
+	);
+	const trulyParsedDescriptions = sequence(parsedDescriptions);
+	if (trulyParsedDescriptions && trulyParsedDescriptions.length > 0) {
+		element.innerHTML = buildDescriptionListHTML(
+			trulyParsedDescriptions.map(({ outcome }) => outcome),
+		);
+	} else {
+		Array.from(element.children).forEach((underling) => {
+			recursivelyProcessDescriptionLists(underling);
+		});
 	}
 }
 
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+/** A description is some terms and some details. */
+type descriptions = { terms: string[]; details: string[] };
 
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
+/**
+ * Given an array of descriptions, build an HTML structure of a description
+ * list.
+ */
+export function buildDescriptionListHTML(
+	descriptionArray: descriptions[],
+): string {
+	return (
+		"<dl>" +
+		descriptionArray.map(buildDescriptionHTML).join(" ").trim() +
+		"</dl>"
+	);
+}
+
+/**
+ * Given a description, build an HTML structure holding its terms and details.
+ */
+export function buildDescriptionHTML(description: descriptions): string {
+	const termsString = description.terms
+		.map((term) => "<dt>" + term.trim() + "</dt>")
+		.join(" ");
+	const detailsString = description.details
+		.map((detail) => "<dd>" + detail.trim() + "</dd>")
+		.join(" ");
+	return termsString + detailsString;
+}
+
+/**
+ * Given an array of DOM nodes, try to recognize it as a description list.
+ *
+ * This function will try first to parse some terms, and then some details. If
+ * it cannot find at least one of each, or if any of the input is left over, it
+ * will return `null`.
+ */
+export function parseDescription(input: Node[]): parses<Node, descriptions> {
+	function parseLineBreak(
+		input: Node[],
+	): parses<Node, Record<string, never>> {
+		const parsedLineBreak = parseMatching(
+			(node: Node) =>
+				"nodeName" in node ? node.nodeName === "BR" : false,
+			input,
+		);
+		if (parsedLineBreak === null) {
+			return null;
+		} else return { outcome: {}, leftover: parsedLineBreak.leftover };
 	}
 
-	display(): void {
-		const {containerEl} = this;
-
-		containerEl.empty();
-
-		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
+	function parseTerm(input: Node[]): parses<Node, string> {
+		if (input.length === 0) {
+			return null;
+		} else {
+			const firstNodeString: string = renderHTML(input[0]);
+			if (firstNodeString.trim().slice(0, 2) === ": ") {
+				return null;
+			} else {
+				return {
+					outcome: firstNodeString,
+					leftover: input.slice(1),
+				};
+			}
+		}
 	}
+
+	function parseManifoldTerm(input: Node[]): parses<Node, string> {
+		const parsedTermElements = parseSome(
+			(input) => parseThisButNotThat(parseTerm, parseLineBreak, input),
+			input,
+		);
+		if (parsedTermElements === null) {
+			return null;
+		} else {
+			return {
+				outcome: parsedTermElements.outcome.join(" "),
+				leftover: parsedTermElements.leftover,
+			};
+		}
+	}
+
+	function parseDetail(input: Node[]): parses<Node, string> {
+		if (input.length === 0) {
+			return null;
+		} else {
+			const firstNodeString: string = renderHTML(input[0]);
+			if (firstNodeString.trim().slice(0, 2) === ": ") {
+				return {
+					outcome: firstNodeString.slice(2),
+					leftover: input.slice(1),
+				};
+			} else {
+				return null;
+			}
+		}
+	}
+
+	function parseManifoldDetail(input: Node[]): parses<Node, string> {
+		const parsedFirstDetailElement = parseDetail(input);
+		if (parsedFirstDetailElement === null) {
+			return null;
+		} else {
+			function parseUntilLineBreak(
+				input: Node[],
+			): parses<Node, string[]> {
+				return parseMany(
+					(input) =>
+						parseThisButNotThat(
+							(input) =>
+								parseMap(
+									renderHTML,
+									parseMatching(() => true, input),
+								),
+							parseLineBreak,
+							input,
+						),
+					input,
+				);
+			}
+
+			const parsedOtherDetailElements = parseUntilLineBreak(
+				parsedFirstDetailElement.leftover,
+			);
+			if (parsedOtherDetailElements === null) {
+				return null;
+			} else {
+				return {
+					outcome: [parsedFirstDetailElement.outcome]
+						.concat(parsedOtherDetailElements.outcome)
+						.join(" "),
+					leftover: parsedOtherDetailElements.leftover,
+				};
+			}
+		}
+	}
+
+	const parsedTerms: parses<Node, string[]> = parseSomeSunderedTidbits(
+		parseLineBreak,
+		parseManifoldTerm,
+		input,
+	);
+	const parsedLineBreak: parses<Node, Record<string, never>> = parsedTerms
+		? parseLineBreak(parsedTerms.leftover)
+		: null;
+	const parsedDetails: parses<Node, string[]> = parsedLineBreak
+		? parseSomeSunderedTidbits(
+				parseLineBreak,
+				parseManifoldDetail,
+				parsedLineBreak.leftover,
+			)
+		: null;
+	if (
+		parsedTerms === null ||
+		parsedLineBreak === null ||
+		parsedDetails === null ||
+		parsedDetails.leftover.length > 0
+	) {
+		return null;
+	} else {
+		return {
+			outcome: {
+				terms: parsedTerms.outcome,
+				details: parsedDetails.outcome,
+			},
+			leftover: parsedTerms.leftover,
+		};
+	}
+}
+
+/**
+ * A true parse is never `null`.
+ */
+export type trueParses<runes, outcomes> = {
+	outcome: outcomes;
+	leftover: runes[];
+};
+
+/**
+ * A parse may be null, or else it will hold some outcome and any number of
+ * runes left over
+ */
+export type parses<runes, outcomes> = trueParses<runes, outcomes> | null;
+
+/**
+ * Whenever you have a parse, you can map a function over its hopeful
+ * outcome. Parses are a functor.
+ */
+export function parseMap<runes, inputs, outputs>(
+	mapping: (_: inputs) => outputs,
+	argument: parses<runes, inputs>,
+): parses<runes, outputs> {
+	if (argument === null) {
+		return null;
+	} else
+		return {
+			outcome: mapping(argument.outcome),
+			leftover: argument.leftover,
+		};
+}
+
+/**
+ * Parse a rune that belongs to a given set. All other runes are left over. If
+ * the first rune is not matching, or if the input is empty, return `null`.
+ */
+export function parseMatching<runes>(
+	isMatching: (rune: runes) => boolean,
+	input: runes[],
+): parses<runes, runes> {
+	return input.length > 0 && isMatching(input[0])
+		? { outcome: input[0], leftover: input.slice(1) }
+		: null;
+}
+
+/**
+ * Given a way to parse a tidbit, and a way to parse a sunderer, parse an array of tidbits.
+ *
+ * For example, a tidbit may be a word and a sunderer may be whitespace — then
+ * you will have an array of words without any whitespace.
+ */
+export function parseSomeSunderedTidbits<runes, outcomes>(
+	parseSunderer: (input: runes[]) => parses<runes, Record<string, never>>,
+	parseTidbit: (input: runes[]) => parses<runes, outcomes>,
+	input: runes[],
+): parses<runes, outcomes[]> {
+	function parseSundererThenTidbit(input: runes[]): parses<runes, outcomes> {
+		const parsedSunderer = parseSunderer(input);
+		if (parsedSunderer === null) {
+			return null;
+		} else {
+			const parsedTidbit = parseTidbit(parsedSunderer.leftover);
+			if (parsedTidbit === null) {
+				return null;
+			} else {
+				return parsedTidbit;
+			}
+		}
+	}
+
+	const parsedTidbit = parseTidbit(input);
+	if (parsedTidbit === null) {
+		return null;
+	} else {
+		const parsedTidbits = parseMany(
+			parseSundererThenTidbit,
+			parsedTidbit.leftover,
+		);
+		if (parsedTidbits === null) {
+			return {
+				outcome: [parsedTidbit.outcome],
+				leftover: parsedTidbit.leftover,
+			};
+		} else {
+			return {
+				outcome: [parsedTidbit.outcome].concat(parsedTidbits.outcome),
+				leftover: parsedTidbits.leftover,
+			};
+		}
+	}
+}
+
+/**
+ * Parse the same thing zero or more times.
+ */
+export function parseMany<runes, outcomes>(
+	parseTidbit: (input: runes[]) => parses<runes, outcomes>,
+	input: runes[],
+): parses<runes, outcomes[]> {
+	const outcome: outcomes[] = [];
+	let leftover: runes[] = input;
+	while (true) {
+		const parsedTidbit = parseTidbit(leftover);
+		if (parsedTidbit) {
+			leftover = parsedTidbit.leftover;
+			outcome.push(parsedTidbit.outcome);
+		} else {
+			break;
+		}
+	}
+	return { outcome, leftover };
+}
+
+/**
+ * Parse the same thing one or more times.
+ */
+export function parseSome<runes, outcomes>(
+	parseTidbit: (input: runes[]) => parses<runes, outcomes>,
+	input: runes[],
+): parses<runes, outcomes[]> {
+	const parsedMany = parseMany(parseTidbit, input);
+	if (parsedMany && parsedMany.outcome.length === 0) {
+		return null;
+	} else {
+		return parsedMany;
+	}
+}
+
+/**
+ * Parse something, so far as it cannot be parsed by the other parser.
+ *
+ * For example, you may parse any letter but the new line symbol. Repeat this
+ * many times and you will have parsed a line.
+ */
+export function parseThisButNotThat<runes, outcomes>(
+	parseThis: (input: runes[]) => parses<runes, outcomes>,
+	parseThat: (input: runes[]) => parses<runes, Record<string, unknown>>,
+	input: runes[],
+): parses<runes, outcomes> {
+	const parsedThat = parseThat(input);
+	if (parsedThat === null) {
+		return parseThis(input);
+	} else return null;
+}
+
+/**
+ * There is no way to render a DOM node into an HTML string. As a workaround, we
+ * copy it and put it into a fake paragraph, then we can take its `innerHTML`.
+ */
+export function renderHTML(node: Node): string {
+	const paragraph = document.createElement("p");
+	const freshNode = node.cloneNode(true);
+	paragraph.appendChild(freshNode);
+	return paragraph.innerHTML;
+}
+
+/**
+ * If the given array has at least one `null`, return `null`, otherwise return
+ * an array with a stricter type of elements, but the same contents.
+ */
+export function sequence<tidbits>(input: (tidbits | null)[]): tidbits[] {
+	const output: tidbits[] = [];
+	function check(tidbit: tidbits) {
+		if (tidbit === null) return null;
+		else output.push(tidbit);
+	}
+	input.forEach(check);
+	return output;
 }
