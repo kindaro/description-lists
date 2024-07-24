@@ -7,9 +7,9 @@
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
 		"version": "node version-bump.mjs && git add manifest.json versions.json",
-		"typedoc": "typedoc main.ts",
-		"format": "prettier --write main.ts; prettier --write styles.css",
-		"lint": "eslint main.ts"
+		"typedoc": "typedoc *.ts",
+		"format": "prettier --write *.ts; prettier --write styles.css",
+		"lint": "eslint *.ts"
 	},
 	"keywords": [],
 	"author": "",
