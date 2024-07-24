@@ -47,105 +47,6 @@ export function buildDescriptionHTML(description: descriptions): string {
  * will return `null`.
  */
 export function parseDescription(input: Node[]): parses<Node, descriptions> {
-	function parseLineBreak(
-		input: Node[],
-	): parses<Node, Record<string, never>> {
-		const parsedLineBreak = parseMatching(
-			(node: Node) =>
-				"nodeName" in node ? node.nodeName === "BR" : false,
-			input,
-		);
-		if (parsedLineBreak === null) {
-			return null;
-		} else return { outcome: {}, leftover: parsedLineBreak.leftover };
-	}
-
-	function parseTermChunk(input: Node[]): parses<Node, string> {
-		if (input.length === 0) {
-			return null;
-		} else {
-			const firstNodeString: string = renderHTML(input[0]);
-			if (firstNodeString.trim()[0] === ":") {
-				return null;
-			} else {
-				return {
-					outcome: firstNodeString,
-					leftover: input.slice(1),
-				};
-			}
-		}
-	}
-
-	function parseTerm(input: Node[]): parses<Node, string> {
-		const parsedTermChunks = parseSome(
-			(input) =>
-				parseThisButNotThat(parseTermChunk, parseLineBreak, input),
-			input,
-		);
-		if (parsedTermChunks === null) {
-			return null;
-		} else {
-			return {
-				outcome: parsedTermChunks.outcome.join(" "),
-				leftover: parsedTermChunks.leftover,
-			};
-		}
-	}
-
-	function parseDetailChunk(input: Node[]): parses<Node, string> {
-		if (input.length === 0) {
-			return null;
-		} else {
-			const firstNodeString: string = renderHTML(input[0]);
-			if (firstNodeString.trim()[0] === ":") {
-				return {
-					outcome: firstNodeString.trim().slice(1),
-					leftover: input.slice(1),
-				};
-			} else {
-				return null;
-			}
-		}
-	}
-
-	function parseDetail(input: Node[]): parses<Node, string> {
-		const parsedFirstDetailChunk = parseDetailChunk(input);
-		if (parsedFirstDetailChunk === null) {
-			return null;
-		} else {
-			function parseUntilLineBreak(
-				input: Node[],
-			): parses<Node, string[]> {
-				return parseMany(
-					(input) =>
-						parseThisButNotThat(
-							(input) =>
-								parseMap(
-									renderHTML,
-									parseMatching(() => true, input),
-								),
-							parseLineBreak,
-							input,
-						),
-					input,
-				);
-			}
-
-			const parsedOtherDetailChunks = parseUntilLineBreak(
-				parsedFirstDetailChunk.leftover,
-			);
-			if (parsedOtherDetailChunks === null) {
-				return null;
-			} else {
-				return {
-					outcome: [parsedFirstDetailChunk.outcome]
-						.concat(parsedOtherDetailChunks.outcome)
-						.join(" "),
-					leftover: parsedOtherDetailChunks.leftover,
-				};
-			}
-		}
-	}
 	const parsedTerms: parses<Node, string[]> = parseSomeSunderedTidbits(
 		parseLineBreak,
 		parseTerm,
@@ -176,5 +77,101 @@ export function parseDescription(input: Node[]): parses<Node, descriptions> {
 			},
 			leftover: parsedTerms.leftover,
 		};
+	}
+}
+
+export function parseLineBreak(
+	input: Node[],
+): parses<Node, Record<string, never>> {
+	const parsedLineBreak = parseMatching(
+		(node: Node) => ("nodeName" in node ? node.nodeName === "BR" : false),
+		input,
+	);
+	if (parsedLineBreak === null) {
+		return null;
+	} else return { outcome: {}, leftover: parsedLineBreak.leftover };
+}
+
+export function parseTermChunk(input: Node[]): parses<Node, string> {
+	if (input.length === 0) {
+		return null;
+	} else {
+		const firstNodeString: string = renderHTML(input[0]);
+		if (firstNodeString.trim()[0] === ":") {
+			return null;
+		} else {
+			return {
+				outcome: firstNodeString,
+				leftover: input.slice(1),
+			};
+		}
+	}
+}
+
+export function parseTerm(input: Node[]): parses<Node, string> {
+	const parsedTermChunks = parseSome(
+		(input) => parseThisButNotThat(parseTermChunk, parseLineBreak, input),
+		input,
+	);
+	if (parsedTermChunks === null) {
+		return null;
+	} else {
+		return {
+			outcome: parsedTermChunks.outcome.join(" "),
+			leftover: parsedTermChunks.leftover,
+		};
+	}
+}
+
+export function parseDetailChunk(input: Node[]): parses<Node, string> {
+	if (input.length === 0) {
+		return null;
+	} else {
+		const firstNodeString: string = renderHTML(input[0]);
+		if (firstNodeString.trim()[0] === ":") {
+			return {
+				outcome: firstNodeString.trim().slice(1),
+				leftover: input.slice(1),
+			};
+		} else {
+			return null;
+		}
+	}
+}
+
+export function parseDetail(input: Node[]): parses<Node, string> {
+	const parsedFirstDetailChunk = parseDetailChunk(input);
+	if (parsedFirstDetailChunk === null) {
+		return null;
+	} else {
+		function parseUntilLineBreak(input: Node[]): parses<Node, string[]> {
+			return parseMany(
+				(input) =>
+					parseThisButNotThat(
+						(input) =>
+							parseMap(
+								renderHTML,
+								parseMatching(() => true, input),
+							),
+						parseLineBreak,
+						input,
+					),
+				input,
+			);
+		}
+
+		const parsedOtherDetailChunks = parseUntilLineBreak(
+			parsedFirstDetailChunk.leftover,
+		);
+		if (parsedOtherDetailChunks === null) {
+			return null;
+		} else {
+			return {
+				outcome: [parsedFirstDetailChunk.outcome]
+					.concat(parsedOtherDetailChunks.outcome)
+					.join(" "),
+				leftover: parsedOtherDetailChunks.leftover,
+			};
+		}
 	}
 }
