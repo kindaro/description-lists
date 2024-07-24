@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-sample-plugin",
+	"name": "description-lists",
 	"version": "1.0.0",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"description": "Renders description lists in reading mode.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
@@ -12,7 +12,7 @@
 		"lint": "eslint *.ts"
 	},
 	"keywords": [],
-	"author": "",
+	"author": "Ignat Insarov",
 	"license": "MIT",
 	"devDependencies": {
 		"@codemirror/state": "^6.4.1",
