@@ -1,6 +1,9 @@
 import { Plugin, MarkdownPostProcessorContext } from "obsidian";
-import { parseDescription, buildDescriptionListHTML } from "descriptions";
-import { sequence } from "helpers";
+import {
+	parseDescription,
+	buildDescriptionListHTML,
+} from "./source/descriptions";
+import { sequence } from "./source/helpers";
 
 export default class DescriptionListsPlugin extends Plugin {
 	async onload() {

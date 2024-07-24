@@ -6,8 +6,8 @@ import {
 	parseMany,
 	parseSome,
 	parseThisButNotThat,
-} from "parsers";
-import { renderHTML } from "helpers";
+} from "./parsers";
+import { renderHTML } from "./helpers";
 
 /** A description is some terms and some details. */
 type descriptions = { terms: string[]; details: string[] };
