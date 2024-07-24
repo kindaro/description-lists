@@ -6,6 +6,7 @@ import {
 	parseMany,
 	parseSome,
 	parseThisButNotThat,
+	trueParses,
 } from "./parsers";
 import { renderHTML } from "./helpers";
 
@@ -21,7 +22,7 @@ export function buildDescriptionListHTML(
 ): string {
 	return (
 		"<dl>" +
-		descriptionArray.map(buildDescriptionHTML).join(" ").trim() +
+		descriptionArray.map(buildDescriptionHTML).join(" ").trimStart() +
 		"</dl>"
 	);
 }
@@ -31,12 +32,12 @@ export function buildDescriptionListHTML(
  */
 export function buildDescriptionHTML(description: descriptions): string {
 	const termsString = description.terms
-		.map((term) => "<dt>" + term.trim() + "</dt>")
+		.map((term) => "<dt>" + term.trimStart() + "</dt>")
 		.join(" ");
 	const detailsString = description.details
-		.map((detail) => "<dd>" + detail.trim() + "</dd>")
+		.map((detail) => "<dd>" + detail.trimStart() + "</dd>")
 		.join(" ");
-	return termsString + detailsString;
+	return termsString + " " + detailsString;
 }
 
 /**
@@ -75,7 +76,7 @@ export function parseDescription(input: Node[]): parses<Node, descriptions> {
 				terms: parsedTerms.outcome,
 				details: parsedDetails.outcome,
 			},
-			leftover: parsedTerms.leftover,
+			leftover: parsedDetails.leftover,
 		};
 	}
 }
@@ -84,12 +85,10 @@ export function parseLineBreak(
 	input: Node[],
 ): parses<Node, Record<string, never>> {
 	const parsedLineBreak = parseMatching(
-		(node: Node) => ("nodeName" in node ? node.nodeName === "BR" : false),
+		(node: Node) => node.nodeName === "BR",
 		input,
 	);
-	if (parsedLineBreak === null) {
-		return null;
-	} else return { outcome: {}, leftover: parsedLineBreak.leftover };
+	return parseMap(() => ({}), parsedLineBreak);
 }
 
 export function parseTermChunk(input: Node[]): parses<Node, string> {
@@ -97,7 +96,7 @@ export function parseTermChunk(input: Node[]): parses<Node, string> {
 		return null;
 	} else {
 		const firstNodeString: string = renderHTML(input[0]);
-		if (firstNodeString.trim()[0] === ":") {
+		if (firstNodeString.trimStart()[0] === ":") {
 			return null;
 		} else {
 			return {
@@ -117,7 +116,7 @@ export function parseTerm(input: Node[]): parses<Node, string> {
 		return null;
 	} else {
 		return parseMap(
-			(stringArray) => stringArray.join(" "),
+			(stringArray) => stringArray.join(""),
 			parsedTermChunks,
 		);
 	}
@@ -128,9 +127,9 @@ export function parseDetailChunk(input: Node[]): parses<Node, string> {
 		return null;
 	} else {
 		const firstNodeString: string = renderHTML(input[0]);
-		if (firstNodeString.trim()[0] === ":") {
+		if (firstNodeString.trimStart()[0] === ":") {
 			return {
-				outcome: firstNodeString.trim().slice(1),
+				outcome: firstNodeString.trimStart().slice(1),
 				leftover: input.slice(1),
 			};
 		} else {
@@ -162,16 +161,12 @@ export function parseDetail(input: Node[]): parses<Node, string> {
 
 		const parsedOtherDetailChunks = parseUntilLineBreak(
 			parsedFirstDetailChunk.leftover,
-		);
-		if (parsedOtherDetailChunks === null) {
-			return null;
-		} else {
-			return {
-				outcome: [parsedFirstDetailChunk.outcome]
-					.concat(parsedOtherDetailChunks.outcome)
-					.join(" "),
-				leftover: parsedOtherDetailChunks.leftover,
-			};
-		}
+		) as trueParses<Node, string[]>;
+		return {
+			outcome: [parsedFirstDetailChunk.outcome]
+				.concat(parsedOtherDetailChunks.outcome)
+				.join(""),
+			leftover: parsedOtherDetailChunks.leftover,
+		};
 	}
 }

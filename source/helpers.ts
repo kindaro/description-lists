@@ -13,12 +13,12 @@ export function renderHTML(node: Node): string {
  * If the given array has at least one `null`, return `null`, otherwise return
  * an array with a stricter type of elements, but the same contents.
  */
-export function sequence<tidbits>(input: (tidbits | null)[]): tidbits[] {
+export function sequence<tidbits>(input: (tidbits | null)[]): tidbits[] | null {
 	const output: tidbits[] = [];
-	function check(tidbit: tidbits) {
+	for (let index = 0; index < input.length; index++) {
+		const tidbit = input[index];
 		if (tidbit === null) return null;
 		else output.push(tidbit);
 	}
-	input.forEach(check);
 	return output;
 }
