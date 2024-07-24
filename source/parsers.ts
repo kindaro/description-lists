@@ -74,18 +74,11 @@ export function parseSomeSunderedTidbits<runes, outcomes>(
 		const parsedTidbits = parseMany(
 			parseSundererThenTidbit,
 			parsedTidbit.leftover,
-		);
-		if (parsedTidbits === null) {
-			return {
-				outcome: [parsedTidbit.outcome],
-				leftover: parsedTidbit.leftover,
-			};
-		} else {
-			return {
-				outcome: [parsedTidbit.outcome].concat(parsedTidbits.outcome),
-				leftover: parsedTidbits.leftover,
-			};
-		}
+		) as trueParses<runes, outcomes[]>;
+		return {
+			outcome: [parsedTidbit.outcome].concat(parsedTidbits.outcome),
+			leftover: parsedTidbits.leftover,
+		};
 	}
 }
 
