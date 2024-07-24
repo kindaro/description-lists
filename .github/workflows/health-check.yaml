@@ -37,10 +37,8 @@ jobs:
           node-version: "18.x"
       - name: fetch dependencies
         run: yarn
-      - name: check formatting of `main.ts`
-        run: yarn prettier --check 'main.ts'
-      - name: check formatting of `styles.css`
-        run: yarn prettier --check 'styles.css'
+      - name: check formatting
+        run: yarn check-formatting
 
   build:
     name: check build process
@@ -58,3 +56,22 @@ jobs:
         run: yarn
       - name: build code
         run: yarn build
+
+  test:
+    name: run test suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: key-${{ hashFiles ('yarn.lock') }}
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "18.x"
+      - name: fetch dependencies
+        run: yarn
+      - name: install Firefox
+        run: yarn playwright install firefox
+      - name: run test suite
+        run: yarn check-coverage

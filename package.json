@@ -12,7 +12,7 @@
 		"lint": "eslint source/*.ts tests/*.ts main.ts",
 		"test": "vitest",
 		"coverage": "vitest run --coverage.enabled true",
-		"check-coverage": "yarn coverage --coverage.reporter json-summary && ! cat coverage/coverage-summary.json | jq '.total | .lines, .statements, .functions, .branches | .pct' | grep --quiet --invert-match '^100$'"
+		"check-coverage": "yarn coverage --coverage.reporter json-summary --coverage.reporter text && ! cat coverage/coverage-summary.json | jq '.total | .lines, .statements, .functions, .branches | .pct' | grep --quiet --invert-match '^100$'"
 	},
 	"keywords": [],
 	"author": "Ignat Insarov",
