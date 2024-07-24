@@ -60,7 +60,7 @@ export function parseDescription(input: Node[]): parses<Node, descriptions> {
 		} else return { outcome: {}, leftover: parsedLineBreak.leftover };
 	}
 
-	function parseTerm(input: Node[]): parses<Node, string> {
+	function parseTermChunk(input: Node[]): parses<Node, string> {
 		if (input.length === 0) {
 			return null;
 		} else {
@@ -76,22 +76,23 @@ export function parseDescription(input: Node[]): parses<Node, descriptions> {
 		}
 	}
 
-	function parseManifoldTerm(input: Node[]): parses<Node, string> {
-		const parsedTermElements = parseSome(
-			(input) => parseThisButNotThat(parseTerm, parseLineBreak, input),
+	function parseTerm(input: Node[]): parses<Node, string> {
+		const parsedTermChunks = parseSome(
+			(input) =>
+				parseThisButNotThat(parseTermChunk, parseLineBreak, input),
 			input,
 		);
-		if (parsedTermElements === null) {
+		if (parsedTermChunks === null) {
 			return null;
 		} else {
 			return {
-				outcome: parsedTermElements.outcome.join(" "),
-				leftover: parsedTermElements.leftover,
+				outcome: parsedTermChunks.outcome.join(" "),
+				leftover: parsedTermChunks.leftover,
 			};
 		}
 	}
 
-	function parseDetail(input: Node[]): parses<Node, string> {
+	function parseDetailChunk(input: Node[]): parses<Node, string> {
 		if (input.length === 0) {
 			return null;
 		} else {
@@ -107,9 +108,9 @@ export function parseDescription(input: Node[]): parses<Node, descriptions> {
 		}
 	}
 
-	function parseManifoldDetail(input: Node[]): parses<Node, string> {
-		const parsedFirstDetailElement = parseDetail(input);
-		if (parsedFirstDetailElement === null) {
+	function parseDetail(input: Node[]): parses<Node, string> {
+		const parsedFirstDetailChunk = parseDetailChunk(input);
+		if (parsedFirstDetailChunk === null) {
 			return null;
 		} else {
 			function parseUntilLineBreak(
@@ -130,25 +131,24 @@ export function parseDescription(input: Node[]): parses<Node, descriptions> {
 				);
 			}
 
-			const parsedOtherDetailElements = parseUntilLineBreak(
-				parsedFirstDetailElement.leftover,
+			const parsedOtherDetailChunks = parseUntilLineBreak(
+				parsedFirstDetailChunk.leftover,
 			);
-			if (parsedOtherDetailElements === null) {
+			if (parsedOtherDetailChunks === null) {
 				return null;
 			} else {
 				return {
-					outcome: [parsedFirstDetailElement.outcome]
-						.concat(parsedOtherDetailElements.outcome)
+					outcome: [parsedFirstDetailChunk.outcome]
+						.concat(parsedOtherDetailChunks.outcome)
 						.join(" "),
-					leftover: parsedOtherDetailElements.leftover,
+					leftover: parsedOtherDetailChunks.leftover,
 				};
 			}
 		}
 	}
-
 	const parsedTerms: parses<Node, string[]> = parseSomeSunderedTidbits(
 		parseLineBreak,
-		parseManifoldTerm,
+		parseTerm,
 		input,
 	);
 	const parsedLineBreak: parses<Node, Record<string, never>> = parsedTerms
@@ -157,7 +157,7 @@ export function parseDescription(input: Node[]): parses<Node, descriptions> {
 	const parsedDetails: parses<Node, string[]> = parsedLineBreak
 		? parseSomeSunderedTidbits(
 				parseLineBreak,
-				parseManifoldDetail,
+				parseDetail,
 				parsedLineBreak.leftover,
 			)
 		: null;
