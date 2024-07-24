@@ -116,10 +116,10 @@ export function parseTerm(input: Node[]): parses<Node, string> {
 	if (parsedTermChunks === null) {
 		return null;
 	} else {
-		return {
-			outcome: parsedTermChunks.outcome.join(" "),
-			leftover: parsedTermChunks.leftover,
-		};
+		return parseMap(
+			(stringArray) => stringArray.join(" "),
+			parsedTermChunks,
+		);
 	}
 }
 
