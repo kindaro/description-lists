@@ -7,9 +7,12 @@
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
 		"version": "node version-bump.mjs && git add manifest.json versions.json",
-		"typedoc": "typedoc source/*.ts",
-		"format": "prettier --write source/**/*.ts main.ts styles.css",
-		"lint": "eslint *.ts"
+		"format": "prettier --write source/*.ts tests/*.ts main.ts styles.css",
+		"check-formatting": "prettier --check source/*.ts tests/*.ts main.ts styles.css",
+		"lint": "eslint source/*.ts tests/*.ts main.ts",
+		"test": "vitest",
+		"coverage": "vitest run --coverage.enabled true",
+		"check-coverage": "yarn coverage --coverage.reporter json-summary && ! cat coverage/coverage-summary.json | jq '.total | .lines, .statements, .functions, .branches | .pct' | grep --quiet --invert-match '^100$'"
 	},
 	"keywords": [],
 	"author": "Ignat Insarov",
@@ -20,13 +23,18 @@
 		"@types/node": "^16.11.6",
 		"@typescript-eslint/eslint-plugin": "5.29.0",
 		"@typescript-eslint/parser": "5.29.0",
+		"@vitest/browser": "^2.0.4",
+		"@vitest/coverage-istanbul": "^2.0.4",
 		"builtin-modules": "3.3.0",
+		"chai": "^5.1.1",
 		"esbuild": "0.17.3",
 		"eslint": "^9.7.0",
 		"obsidian": "latest",
+		"playwright": "^1.45.3",
 		"prettier": "^3.3.3",
 		"tslib": "2.4.0",
 		"typedoc": "^0.26.5",
-		"typescript": "4.7.4"
+		"typescript": "4.7.4",
+		"vitest": "^2.0.4"
 	}
 }
