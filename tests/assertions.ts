@@ -6,7 +6,7 @@ export function assertWithNode(
 	html: string,
 	assertion: (_: Node[]) => void,
 ): void {
-	const root = document.getElementsByTagName("html")[0];
+	const root = document.getElementsByTagName("body")[0];
 	const division = `<div id="target">${html}</div>`;
 	root.innerHTML = division;
 	const node = document.getElementById("target");
