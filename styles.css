@@ -7,6 +7,14 @@
 	padding-inline-start: var(--size-4-6);
 }
 
+.markdown-rendered div:has(> dl) + div:has(> dl) {
+	margin-top: calc(var(--p-spacing) * -1);
+}
+
+.markdown-rendered div:has(> dl) + div:has(> dl) > dl {
+	padding-top: calc(var(--p-spacing));
+}
+
 /* We set our terms in bold, but of muted colour, so they are distinguished but
  * do not stand out.  */
 .markdown-rendered dt {
