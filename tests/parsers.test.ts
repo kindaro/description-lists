@@ -6,7 +6,34 @@ import {
 	parseMatching,
 	parseMap,
 	parses,
+	parseZebra,
 } from "../source/parsers";
+import { initialize, construct } from "../source/zebras";
+
+describe("parseZebra", () => {
+	it("does not parse empty input", () =>
+		assert.strictEqual(parseZebra(parseOdd, parseEven, []), null));
+	it("parses one stripe", () =>
+		assert.deepEqual(parseZebra(parseOdd, parseEven, [1]), {
+			outcome: initialize<number, number>(1),
+			leftover: [],
+		}));
+	it("parses three stripes", () =>
+		assert.deepEqual(parseZebra(parseOdd, parseEven, [1, 2, 3]), {
+			outcome: construct(1, 2, initialize(3)),
+			leftover: [],
+		}));
+	it("stops parsing on white if parsed one stripe", () =>
+		assert.deepEqual(parseZebra(parseOdd, parseEven, [1, 2]), {
+			outcome: initialize<number, number>(1),
+			leftover: [2],
+		}));
+	it("stops parsing on white if parsed three stripes", () =>
+		assert.deepEqual(parseZebra(parseOdd, parseEven, [1, 2, 3, 5]), {
+			outcome: construct(1, 2, initialize(3)),
+			leftover: [5],
+		}));
+});
 
 describe("parseSomeSunderedTidbits", () => {
 	it("parses one tidbit", () =>

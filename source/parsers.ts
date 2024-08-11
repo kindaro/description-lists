@@ -1,3 +1,11 @@
+import {
+	construct,
+	getWhiteStripes,
+	initialize,
+	reverse,
+	zebras,
+} from "./zebras";
+
 /**
  * A true parse is never `null`.
  */
@@ -29,6 +37,32 @@ export function parseMap<runes, inputs, outputs>(
 		};
 }
 
+export function parseWholeInput<runes, outcomes>(
+	parse: (input: runes[]) => parses<runes, outcomes>,
+	input: runes[],
+): parses<runes, outcomes> {
+	const parsed = parse(input);
+	return parsed && parsed.leftover.length === 0 ? parsed : null;
+}
+
+export function parseOneThenOther<runes, ones, others>(
+	parseOne: (input: runes[]) => parses<runes, ones>,
+	parseOther: (input: runes[]) => parses<runes, others>,
+	input: runes[],
+): parses<runes, { one: ones; other: others }> {
+	const parsedOne = parseOne(input);
+	if (parsedOne === null) return null;
+	else {
+		const parsedOther = parseOther(parsedOne.leftover);
+		if (parsedOther === null) return null;
+		else
+			return {
+				outcome: { one: parsedOne.outcome, other: parsedOther.outcome },
+				leftover: parsedOther.leftover,
+			};
+	}
+}
+
 /**
  * Parse a rune that belongs to a given set. All other runes are left over. If
  * the first rune is not matching, or if the input is empty, return `null`.
@@ -53,33 +87,10 @@ export function parseSomeSunderedTidbits<runes, outcomes>(
 	parseTidbit: (input: runes[]) => parses<runes, outcomes>,
 	input: runes[],
 ): parses<runes, outcomes[]> {
-	function parseSundererThenTidbit(input: runes[]): parses<runes, outcomes> {
-		const parsedSunderer = parseSunderer(input);
-		if (parsedSunderer === null) {
-			return null;
-		} else {
-			const parsedTidbit = parseTidbit(parsedSunderer.leftover);
-			if (parsedTidbit === null) {
-				return null;
-			} else {
-				return parsedTidbit;
-			}
-		}
-	}
-
-	const parsedTidbit = parseTidbit(input);
-	if (parsedTidbit === null) {
-		return null;
-	} else {
-		const parsedTidbits = parseMany(
-			parseSundererThenTidbit,
-			parsedTidbit.leftover,
-		) as trueParses<runes, outcomes[]>;
-		return {
-			outcome: [parsedTidbit.outcome].concat(parsedTidbits.outcome),
-			leftover: parsedTidbits.leftover,
-		};
-	}
+	return parseMap(
+		getWhiteStripes<outcomes, Record<string, never>>,
+		parseZebra(parseTidbit, parseSunderer, input),
+	);
 }
 
 /**
@@ -133,4 +144,40 @@ export function parseThisButNotThat<runes, outcomes>(
 	if (parsedThat === null) {
 		return parseThis(input);
 	} else return null;
+}
+
+export function parseZebra<runes, white, black>(
+	parseWhiteStripe: (input: runes[]) => parses<runes, white>,
+	parseBlackStripe: (input: runes[]) => parses<runes, black>,
+	input: runes[],
+): parses<runes, zebras<white, black>> {
+	const parsed = parseOneThenOther(
+		parseWhiteStripe,
+		(input) =>
+			parseMany(
+				(input) =>
+					parseOneThenOther(
+						parseBlackStripe,
+						parseWhiteStripe,
+						input,
+					),
+				input,
+			),
+		input,
+	);
+	if (parsed === null) return null;
+	else
+		return parseMap(
+			({ one: x, other: y }) =>
+				reverse(
+					y.reduce(
+						(
+							zebra: zebras<white, black>,
+							twoStripes: { one: black; other: white },
+						) => construct(twoStripes.other, twoStripes.one, zebra),
+						initialize(x),
+					),
+				),
+			parsed,
+		);
 }
