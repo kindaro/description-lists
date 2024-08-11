@@ -59,24 +59,3 @@
 .markdown-rendered .list-bullet {
 	display: none;
 }
-
-.markdown-rendered .callout[data-callout="descriptions"] {
-	background: inherit;
-	padding: 0;
-	margin: var(--p-spacing) 0;
-}
-.markdown-rendered
-	.callout[data-callout="descriptions"]
-	> .callout-content
-	> *:first-child {
-	margin-top: 0;
-}
-.markdown-rendered
-	.callout[data-callout="descriptions"]
-	> .callout-content
-	> *:last-child {
-	margin-bottom: 0;
-}
-.markdown-rendered .callout[data-callout="descriptions"] .callout-title {
-	display: none;
-}
