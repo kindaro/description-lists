@@ -69,9 +69,8 @@ The philosophy of styling is to make description lists distinctive but not outst
 
   Differences:
 
-  - The other plugin takes a much simpler approach to the problem. The code is way shorter and easier to handle than of our plugin.
-  - The other plugin does not seem to be able to handle inline markup at the moment.
-  - The other plugin does not seem to be able to handle multiple terms or details within one description at the moment.
+  - The other plugin does not seem to be able to handle multiple terms within one description at the moment.
+  - This plugin does not support live preview, the other plugin does.
 
   [plugin]: https://github.com/shammond42/definition-list
 
