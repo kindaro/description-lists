@@ -103,7 +103,7 @@ We use [classic `yarn`] as a package manager. You need to have it installed �
 - Run `yarn format` to tidy up the whitespace.
 - Run `yarn lint` to make sure nothing is overly stupid.
 - Run `yarn check-coverage` to run the test suite and see how well it covers the code base.
-- Run `yarn version patch`, `yarn version minor` or `yarn version major` to automatically update version everywhere it needs to be updated.
+- Run `yarn version --patch`, `yarn version --minor` or `yarn version --major` to automatically update version everywhere it needs to be updated.
 
 ### quality control
 
@@ -115,4 +115,9 @@ There is a health check workflow running on pull requests. The `master` branch
 
 ### releasing
 
-Once a version tag is pushed, the new version will be automatically built and added as a draft release. The version tag must align with the version specified in `package.json` and `manifest.json`. The draft release can be made public by hand in the GitHub web interface.
+* Automatically update versions in `manifest.json`, `package.json` and `versions.json` by running `yarn version`.
+* Make a commit and merge it to `master`.
+* Tag the merged commit with the version number — without any decorations like `v` or whatever, only the version number. Note that this will be a different commit from what you had in the branch being merged _(because GitHub changes commits in subtle ways when merging)_, so you have to attach a tag after you merge.
+* Push this tag with `git push --tags`.
+* Watch the new version automatically built by the `release` workflow and added as a draft release.
+* The draft release can be made public by hand in the GitHub web interface.
