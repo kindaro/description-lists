@@ -7,11 +7,20 @@ import {
 	parseSome,
 	parseThisButNotThat,
 	trueParses,
+	parseWholeInput,
+	parseZebra,
 } from "./parsers";
 import { renderHTML } from "./helpers";
+import { zebras } from "./zebras";
 
 /** A description is some terms and some details. */
-type descriptions = { terms: string[]; details: string[] };
+export type descriptions = { terms: string[]; details: string[] };
+
+/**
+ * When a description is parsed from a node, it is sometimes gainful to remember
+ * that node.
+ */
+export type annotatedDescriptions = { node: Node; description: descriptions };
 
 /**
  * Given an array of descriptions, build an HTML structure of a description
@@ -41,6 +50,62 @@ export function buildDescriptionHTML(description: descriptions): string {
 }
 
 /**
+ * Obsidian inserts divisions that do nothing on the top level. These divisions
+ * isolate descriptions that should be recognized as consecutive. This function
+ * unwraps such idle divisions.
+ */
+function unwrapIdleDivision(node: Node): Element | null {
+	return node instanceof Element &&
+		node.childNodes[0] instanceof Element
+		? (node.childNodes[0] as Element)
+		: null;
+}
+
+/**
+ * given an array of DOM nodes, try to recognize it as description lists
+ * interspersed with other stuff.
+ */
+export function parseDescriptionListsAndStuff(
+	input: Node[],
+): parses<Node, zebras<Node[], annotatedDescriptions[]>> {
+	function parseNestedDescription(input: Node[]) {
+		if (input.length === 0) return null;
+		else {
+			let rootNode = input[0];
+			let unwrappedNode = unwrapIdleDivision(rootNode)
+			let targetNode = rootNode
+			let parsedDescription = parseDescription(
+				Array.from(targetNode.childNodes),
+			);
+			if (parsedDescription === null) return null;
+			else {
+				return {
+					outcome: {
+						node: rootNode,
+						description: parsedDescription.outcome,
+					},
+					leftover: input.slice(1),
+				};
+			}
+		}
+	}
+
+	function parseStuff(input: Node[]) {
+		return parseThisButNotThat(
+			(input) => parseMatching(() => true, input),
+			parseNestedDescription,
+			input,
+		);
+	}
+
+	return parseZebra(
+		(input) => parseMany(parseStuff, input),
+		(input) => parseSome((input) => parseNestedDescription(input), input),
+		input,
+	);
+}
+
+/**
  * Given an array of DOM nodes, try to recognize it as a description list.
  *
  * This function will try first to parse some terms, and then some details. If
@@ -57,17 +122,20 @@ export function parseDescription(input: Node[]): parses<Node, descriptions> {
 		? parseLineBreak(parsedTerms.leftover)
 		: null;
 	const parsedDetails: parses<Node, string[]> = parsedLineBreak
-		? parseSomeSunderedTidbits(
-				parseLineBreak,
-				parseDetail,
+		? parseWholeInput(
+				(input) =>
+					parseSomeSunderedTidbits(
+						parseLineBreak,
+						parseDetail,
+						parsedLineBreak.leftover,
+					),
 				parsedLineBreak.leftover,
 			)
 		: null;
 	if (
 		parsedTerms === null ||
 		parsedLineBreak === null ||
-		parsedDetails === null ||
-		parsedDetails.leftover.length > 0
+		parsedDetails === null
 	) {
 		return null;
 	} else {
