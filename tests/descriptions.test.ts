@@ -2,14 +2,18 @@ import { describe, it } from "vitest";
 import { assert } from "chai";
 
 import { assertParseWithNode, assertWithNode } from "./assertions";
+import { construct, initialize } from "../source/zebras";
 
 import {
 	buildDescriptionHTML,
 	buildDescriptionListHTML,
 	parseDescription,
+	parseDescriptionListsAndStuff,
 	parseDetail,
 	parseTerm,
 } from "../source/descriptions";
+
+import { renderHTML } from "../source/helpers";
 
 describe("buildDescriptionHTML", () => {
 	it("renders empty description as whitespace", () =>
@@ -59,6 +63,126 @@ describe("buildDescriptionListHTML", () => {
 			"<dd>detail 1 II</dd> <dd>detail 2 II</dd></dl>",
 		].join(" ");
 		assert.equal(expected, actual);
+	});
+});
+
+describe("parseDescriptionListsAndStuff", () => {
+	const stuff = [
+		document
+			.createElement("p")
+			.appendChild(document.createTextNode("something")),
+	];
+	const stuffCode = stuff.map(renderHTML).join(" ");
+	const descriptionParagraphCode = `<p>term<br />:detail</p>`;
+	const descriptionParagraphValue = { terms: ["term"], details: ["detail"] };
+	it("parses HTML without descriptions as a singleton zebra", () => {
+		assertParseWithNode(
+			stuffCode,
+			parseDescriptionListsAndStuff,
+			(nodes) => ({ outcome: initialize(nodes), leftover: [] }),
+		);
+	});
+	it("parses HTML with one simple description as a description list", () => {
+		assertParseWithNode(
+			descriptionParagraphCode,
+			parseDescriptionListsAndStuff,
+			(nodes) => ({
+				outcome: construct(
+					[],
+					[
+						{
+							node: nodes[0],
+							description: descriptionParagraphValue,
+						},
+					],
+					initialize([]),
+				),
+				leftover: [],
+			}),
+		);
+	});
+	it("parses HTML with one simple description surrounded by other stuff as a description list surrounded by that stuff", () => {
+		assertWithNode(
+			stuffCode + descriptionParagraphCode + stuffCode,
+			(nodes) => {
+				let parsed = parseDescriptionListsAndStuff(nodes);
+				if (parsed === null) assert.fail("no parse");
+				else {
+					assert.deepEqual(parsed.leftover, []);
+					switch (parsed.outcome.tag) {
+						case "tail":
+							assert.fail(
+								"Parse is tail but should be a zebra of length 3!",
+							);
+							break;
+						case "body": {
+							assert.strictEqual(
+								parsed.outcome.whiteStripe.length,
+								1,
+							);
+							assert.strictEqual(
+								parsed.outcome.whiteStripe[0].isEqualNode(
+									stuff[0],
+								),
+								true,
+							);
+							assert.deepEqual(
+								parsed.outcome.blackStripe[0].description,
+								descriptionParagraphValue,
+							);
+							assert.strictEqual(
+								parsed.outcome.blackStripe[0].node,
+								nodes[1],
+							);
+							switch (parsed.outcome.otherStripes.tag) {
+								case "body":
+									assert.fail(
+										"Parse is tail but should be a zebra of length 3!",
+									);
+									break;
+								case "tail": {
+									assert.strictEqual(
+										parsed.outcome.otherStripes.tail.length,
+										1,
+									);
+									assert.strictEqual(
+										parsed.outcome.otherStripes.tail[0].isEqualNode(
+											stuff[0],
+										),
+										true,
+									);
+									break;
+								}
+							}
+							break;
+						}
+					}
+				}
+			},
+		);
+	});
+	it("parses HTML with two simple descriptions as a description list", () => {
+		assertParseWithNode(
+			descriptionParagraphCode + descriptionParagraphCode,
+			parseDescriptionListsAndStuff,
+			(nodes) => ({
+				outcome: construct(
+					[],
+					[
+						{
+							node: nodes[0],
+							description: descriptionParagraphValue,
+						},
+						{
+							node: nodes[1],
+							description: descriptionParagraphValue,
+						},
+					],
+					initialize([]),
+				),
+				leftover: [],
+			}),
+		);
 	});
 });
 
