@@ -1,7 +1,7 @@
 import { describe, it } from "vitest";
 import { assert } from "chai";
 
-import { renderHTML, sequence } from "../source/helpers";
+import { parseHTML, renderHTML, sequence } from "../source/helpers";
 import { assertWithNode } from "./assertions";
 
 describe("sequence", () => {
@@ -14,6 +14,15 @@ describe("sequence", () => {
 			"bunny",
 			"fish",
 		]);
+	});
+});
+
+describe("parseHTML", () => {
+	it("parses simple code exactly", () => {
+		const html = `<p>hello</p>`;
+		const node = document.createElement("p");
+		node.appendChild(document.createTextNode("hello"));
+		assert.equal(parseHTML(html).isEqualNode(node), true);
 	});
 });
 

@@ -9,6 +9,12 @@ export function renderHTML(node: Node): string {
 	return paragraph.innerHTML;
 }
 
+export function parseHTML(code: string): Node {
+	const division = document.createElement("div");
+	division.innerHTML = code;
+	return division.firstChild as Node;
+}
+
 /**
  * If the given array has at least one `null`, return `null`, otherwise return
  * an array with a stricter type of elements, but the same contents.
