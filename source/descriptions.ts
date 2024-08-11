@@ -50,18 +50,6 @@ export function buildDescriptionHTML(description: descriptions): string {
 }
 
 /**
- * Obsidian inserts divisions that do nothing on the top level. These divisions
- * isolate descriptions that should be recognized as consecutive. This function
- * unwraps such idle divisions.
- */
-function unwrapIdleDivision(node: Node): Element | null {
-	return node instanceof Element &&
-		node.childNodes[0] instanceof Element
-		? (node.childNodes[0] as Element)
-		: null;
-}
-
-/**
  * given an array of DOM nodes, try to recognize it as description lists
  * interspersed with other stuff.
  */
@@ -71,11 +59,9 @@ export function parseDescriptionListsAndStuff(
 	function parseNestedDescription(input: Node[]) {
 		if (input.length === 0) return null;
 		else {
-			let rootNode = input[0];
-			let unwrappedNode = unwrapIdleDivision(rootNode)
-			let targetNode = rootNode
-			let parsedDescription = parseDescription(
-				Array.from(targetNode.childNodes),
+			const rootNode = input[0];
+			const parsedDescription = parseDescription(
+				Array.from(rootNode.childNodes),
 			);
 			if (parsedDescription === null) return null;
 			else {

@@ -105,7 +105,7 @@ describe("parseDescriptionListsAndStuff", () => {
 		assertWithNode(
 			stuffCode + descriptionParagraphCode + stuffCode,
 			(nodes) => {
-				let parsed = parseDescriptionListsAndStuff(nodes);
+				const parsed = parseDescriptionListsAndStuff(nodes);
 				if (parsed === null) assert.fail("no parse");
 				else {
 					assert.deepEqual(parsed.leftover, []);
