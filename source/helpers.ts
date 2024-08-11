@@ -3,10 +3,10 @@
  * copy it and put it into a fake paragraph, then we can take its `innerHTML`.
  */
 export function renderHTML(node: Node): string {
-	const paragraph = document.createElement("p");
+	const division = document.createElement("div");
 	const freshNode = node.cloneNode(true);
-	paragraph.appendChild(freshNode);
-	return paragraph.innerHTML;
+	division.appendChild(freshNode);
+	return division.innerHTML;
 }
 
 export function parseHTML(code: string): Node {
