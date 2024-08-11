@@ -1,7 +1,7 @@
 {
 	"id": "description-lists",
 	"name": "Description Lists",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"minAppVersion": "0.15.0",
 	"description": "Renders description lists in reading mode.",
 	"author": "Ignat Insarov",
